@@ -55,6 +55,7 @@ def main():
     'third_party/externals/freetype/docs/GPLv2.TXT',
     'third_party/externals/freetype/docs/LICENSE.TXT',
     'third_party/externals/freetype/include/**/*',
+    'third_party/freetype2/include/**/*',
     'third_party/externals/icu/source/common/**/*.h',
     'third_party/externals/libpng/LICENSE',
     'third_party/externals/libpng/*.h',

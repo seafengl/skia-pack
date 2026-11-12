@@ -7,6 +7,8 @@ def create_parser(version_required=False):
   parser.add_argument('--build-type', default='Release')
   parser.add_argument('--version', required=version_required)
   parser.add_argument('--classifier')
+  parser.add_argument('--freetype', default='true', help='Build Skia with bundled FreeType (true/false), default true')
+  parser.add_argument('--no-freetype', action='store_true', help='Shorthand for --freetype false')
   parser.add_argument('--host')
   parser.add_argument('--machine')
   parser.add_argument('--ndk')
@@ -48,6 +50,16 @@ def build_type():
   parser = create_parser()
   (args, _) = parser.parse_known_args()
   return args.build_type
+
+def freetype():
+  parser = create_parser()
+  (args, _) = parser.parse_known_args()
+  if args.no_freetype:
+    return False
+  # An empty value (e.g. unset workflow input) keeps the default, which is enabled
+  if not args.freetype:
+    return True
+  return args.freetype.strip().lower() not in ('0', 'false', 'no', 'off')
 
 def classifier():
   parser = create_parser()

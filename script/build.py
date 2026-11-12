@@ -2,18 +2,7 @@
 
 import common, os, shutil, subprocess, sys
 
-def main():
-  os.chdir(os.path.join(os.path.dirname(__file__), os.pardir, 'skia'))
-
-  build_type = common.build_type()
-  machine = common.machine()
-  host = common.host()
-  host_machine = common.host_machine()
-  target = common.target()
-  ndk = common.ndk()
-
-  tools_dir = "depot_tools"
-  ninja = 'ninja.bat' if 'windows' == host else 'ninja'
+def gn_args(build_type, machine, target, host, host_machine, ndk, freetype):
   isIos = 'ios' == target or 'iosSim' == target
   isTvos = 'tvos' == target or 'tvosSim' == target
   isIosSim = 'iosSim' == target
@@ -33,7 +22,6 @@ def main():
     'skia_use_system_libwebp=false',
     'skia_use_system_zlib=false',
     'skia_use_sfntly=false',
-    'skia_use_system_freetype2=false',
     'skia_use_system_harfbuzz=false',
     'skia_pdf_subset_harfbuzz=true',
     'skia_use_system_icu=false',
@@ -43,6 +31,20 @@ def main():
     'extra_cflags=[]',
     'extra_cflags_cc=[]',
   ]
+
+  # Skia enables FreeType only on android/linux/wasm by default, so it has to be
+  # requested explicitly for windows/macos/ios/tvos. It is always built from the
+  # bundled third_party/externals/freetype sources (skia_use_system_freetype2),
+  # so the resulting freetype2 static library travels with the artifact.
+  # skia_use_system_freetype2 is only declared when FreeType is enabled, so it
+  # must not be passed when it is disabled.
+  if freetype:
+    args += [
+      'skia_use_freetype=true',
+      'skia_use_system_freetype2=false',
+    ]
+  else:
+    args += ['skia_use_freetype=false']
 
   if isMacos or isIos or isTvos:
     if isMacos:
@@ -122,7 +124,6 @@ def main():
         'skia_use_webgl=true',
         'skia_use_piex=false',
         'skia_use_system_libpng=false',
-        'skia_use_system_freetype2=false',
         'skia_use_system_libjpeg_turbo=false',
         'skia_use_system_libwebp=false',
         'skia_enable_tools=false',
@@ -143,6 +144,24 @@ def main():
     'extra_cflags+=["-USK_HIDE_PATH_EDIT_METHODS"]',
     'extra_cflags_cc+=["-USK_HIDE_PATH_EDIT_METHODS"]',
   ]
+
+  return args
+
+def main():
+  os.chdir(os.path.join(os.path.dirname(__file__), os.pardir, 'skia'))
+
+  build_type = common.build_type()
+  machine = common.machine()
+  host = common.host()
+  host_machine = common.host_machine()
+  target = common.target()
+  ndk = common.ndk()
+  freetype = common.freetype()
+
+  args = gn_args(build_type, machine, target, host, host_machine, ndk, freetype)
+
+  tools_dir = "depot_tools"
+  ninja = 'ninja.bat' if 'windows' == host else 'ninja'
 
   if 'linux' == host and 'arm64' == host_machine:
     tools_dir = 'tools'

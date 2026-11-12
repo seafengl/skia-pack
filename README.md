@@ -34,6 +34,31 @@ python3 script/build.py --build-type Debug
 python3 script/archive.py --version SKIA_VERSION --build-type Debug
 ```
 
+### FreeType
+
+Every target is built with FreeType, statically compiled from the bundled
+`third_party/externals/freetype` sources (`skia_use_freetype=true`,
+`skia_use_system_freetype2=false`), so no system FreeType package is required on
+the build machine.
+
+Skia only enables FreeType by itself on android/linux/wasm, so the build script
+passes it explicitly for windows/macos/ios/tvos. Enabling it adds the FreeType
+font managers (`SkFontMgr_custom_directory`/`_embedded`/`_empty`,
+`SkTypeface_FreeType`) to Skia; the default platform font manager is unchanged
+(DirectWrite on Windows, CoreText on Apple platforms, fontconfig on Linux).
+
+The prebuilt artifacts contain `freetype2.lib`/`libfreetype2.a` and the FreeType
+headers (`third_party/externals/freetype/include`, plus the build configuration
+headers from `third_party/freetype2/include`). FreeType is a separate static
+library from Skia, so a consumer that uses the FreeType font managers or `FT_*`
+APIs directly must add it to its link inputs.
+
+To build without FreeType, pass `--freetype false` (or `--no-freetype`):
+
+```sh
+python3 script/build.py --freetype false
+```
+
 ### Windows-specific
 
 On Windows, skia-pack requires Clang-cl to be installed. Clang-cl is a part of LLVM and can be downloaded from the [LLVM project's website](https://releases.llvm.org/). Please also make sure that Clang-cl.exe is available on %PATH%.
