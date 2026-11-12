@@ -2,6 +2,18 @@
 
 import common, os, shutil, subprocess, sys
 
+def ninja_path(host, host_machine):
+  # depot_tools/ninja.bat on Windows is only a shim over depot_tools' own python
+  # bootstrap (python3_bin_reldir.txt), which a freshly cloned depot_tools does
+  # not have, so it fails with "python3_bin_reldir.txt not found". checkout.py
+  # already runs skia/bin/fetch-ninja, which puts the DEPS-pinned binary into
+  # third_party/ninja, so use that one there.
+  if 'windows' == host:
+    return os.path.join('third_party', 'ninja', 'ninja.exe')
+  if 'linux' == host and 'arm64' == host_machine:
+    return os.path.join('..', 'tools', 'ninja-linux-arm64')
+  return os.path.join('..', 'depot_tools', 'ninja')
+
 def gn_args(build_type, machine, target, host, host_machine, ndk, freetype):
   isIos = 'ios' == target or 'iosSim' == target
   isTvos = 'tvos' == target or 'tvosSim' == target
@@ -21,7 +33,6 @@ def gn_args(build_type, machine, target, host, host_machine, ndk, freetype):
     'skia_use_system_libpng=false',
     'skia_use_system_libwebp=false',
     'skia_use_system_zlib=false',
-    'skia_use_sfntly=false',
     'skia_use_system_harfbuzz=false',
     'skia_pdf_subset_harfbuzz=true',
     'skia_use_system_icu=false',
@@ -160,18 +171,15 @@ def main():
 
   args = gn_args(build_type, machine, target, host, host_machine, ndk, freetype)
 
-  tools_dir = "depot_tools"
-  ninja = 'ninja.bat' if 'windows' == host else 'ninja'
-
-  if 'linux' == host and 'arm64' == host_machine:
-    tools_dir = 'tools'
-    ninja = 'ninja-linux-arm64'
+  ninja = ninja_path(host, host_machine)
+  if not os.path.exists(ninja):
+    raise Exception('Can not find "' + ninja + '", run script/checkout.py first')
 
   out = os.path.join('out', build_type + '-' + target + '-' + machine)
   gn = 'gn.exe' if 'windows' == host else 'gn'
   print([os.path.join('bin', gn), 'gen', out, '--args=' + ' '.join(args)])
   subprocess.check_call([os.path.join('bin', gn), 'gen', out, '--args=' + ' '.join(args)])
-  subprocess.check_call([os.path.join('..', tools_dir, ninja), '-C', out, 'skia', 'modules'])
+  subprocess.check_call([ninja, '-C', out, 'skia', 'modules'])
 
   return 0
 
