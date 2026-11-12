@@ -66,6 +66,11 @@ def classifier():
   (args, _) = parser.parse_known_args()
   return '-' + args.classifier if args.classifier else ''
   
+def github_repository():
+  # On GitHub Actions GITHUB_REPOSITORY is the repository the workflow runs in,
+  # so a fork publishes to its own releases instead of the upstream ones.
+  return os.environ.get('GITHUB_REPOSITORY') or 'JetBrains/skia-pack'
+
 def github_headers():
   if os.environ.get('GITHUB_BASIC'):
     auth = 'Basic ' + base64.b64encode(os.environ.get('GITHUB_BASIC').encode('utf-8')).decode('utf-8')
