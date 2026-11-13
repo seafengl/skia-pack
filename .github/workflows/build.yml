@@ -14,7 +14,9 @@ permissions:
   contents: write
 
 env:
-  version: m144-e2e6623374-4
+  # When the workflow is dispatched on a tag, publish to that tag's own release
+  # instead of a separately named one; branch dispatches keep the fixed version.
+  version: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'm144-e2e6623374-4' }}
 
 # Only windows x64 is built for now. Every other target (linux, macos/ios/tvos,
 # wasm, android, windows arm64) is commented out below and can be restored by
@@ -191,7 +193,7 @@ jobs:
           python-version: '3.9'
       - shell: bash
         run: python3 script/check_release.py --version ${{ env.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }}
-        if: ${{ github.event.inputs.skip_release != 'true' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event.inputs.skip_release != 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: microsoft/setup-msbuild@v1
@@ -203,12 +205,12 @@ jobs:
       - shell: bash
         run: python3 script/archive.py --version ${{ env.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }}
       - uses: actions/upload-artifact@v4
-        if: ${{ github.event.inputs.skip_release != 'true' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event.inputs.skip_release != 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
         with:
           name: Skia-${{ env.version }}-windows-${{ matrix.build_type }}-${{ matrix.machine }}.zip
           path: '*.zip'
       - shell: bash
         run: python3 script/release.py --version ${{ env.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }}
-        if: ${{ github.event.inputs.skip_release != 'true' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event.inputs.skip_release != 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
