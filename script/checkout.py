@@ -17,6 +17,14 @@ def checkout_skia(commit):
     os.chdir("skia")
     subprocess.check_call(["git", "fetch", "origin"])
 
+  # A commit that no branch or tag of the fork reaches (e.g. an upstream
+  # milestone commit that never got rebased onto the skiko branch) is not
+  # covered by the ref fetch above. Such a commit can only be requested by its
+  # full SHA, which is why the version may carry one instead of a short SHA.
+  if commit and len(commit) == 40:
+    print("> Fetching {}".format(commit))
+    subprocess.check_call(["git", "fetch", "origin", commit])
+
   # Checkout commit
   print("> Checking out", commit)
   subprocess.check_call(["git", "-c", "advice.detachedHead=false", "checkout", commit])

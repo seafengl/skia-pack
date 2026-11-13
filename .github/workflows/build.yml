@@ -16,7 +16,7 @@ permissions:
 env:
   # When the workflow is dispatched on a tag, publish to that tag's own release
   # instead of a separately named one; branch dispatches keep the fixed version.
-  version: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'm144-e2e6623374-4' }}
+  version: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'm145-a183ded9ad67d998a5b0fe4cd86d3ef5402ffb45-1' }}
 
 # Only windows x64 is built for now. Every other target (linux, macos/ios/tvos,
 # wasm, android, windows arm64) is commented out below and can be restored by
