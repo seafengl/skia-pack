@@ -1,6 +1,22 @@
 #! /usr/bin/env python3
 
-import common, os, shutil, subprocess, sys
+import common, os, re, shutil, subprocess, sys
+
+def clang_win_version(clang_win):
+  # Skia up to m124 derives clang_win_version by matching "x.y.z" directory names
+  # under $clang_win/lib/clang (m145 made the ".y.z" suffix optional). The LLVM
+  # bundled with MSVC on GitHub's Windows runners only ships a bare major version
+  # directory (e.g. "19"), so that lookup raises IndexError and gn gen fails.
+  # Resolve the directory here and pass it explicitly; a non-empty
+  # clang_win_version makes BUILDCONFIG.gn skip the script.
+  lib_clang = os.path.join(clang_win, 'lib', 'clang')
+  if not os.path.isdir(lib_clang):
+    return None
+  versions = [d for d in os.listdir(lib_clang) if re.match('[0-9]+(\\.[0-9]+)*$', d)]
+  if not versions:
+    return None
+  # Compare numerically so that "19" sorts above "9"
+  return sorted(versions, key=lambda v: [int(p) for p in v.split('.')])[-1]
 
 def ninja_path(host, host_machine):
   # depot_tools/ninja.bat on Windows is only a shim over depot_tools' own python
@@ -107,10 +123,14 @@ def gn_args(build_type, machine, target, host, host_machine, ndk, freetype):
       clang_path = shutil.which('clang-cl.exe')
       if not clang_path:
         raise Exception("Please install LLVM from https://releases.llvm.org/, and make sure that clang-cl.exe is available in PATH")
+      clang_win = os.path.dirname(os.path.dirname(clang_path))
       args += [
-        'clang_win="' + os.path.dirname(os.path.dirname(clang_path)) + '"',
+        'clang_win="' + clang_win + '"',
         'is_trivial_abi=false',
       ]
+      version = clang_win_version(clang_win)
+      if version:
+        args += ['clang_win_version="' + version + '"']
   elif 'android' == target:
     args += [
       'ndk="'+ ndk + '"'
